@@ -32,69 +32,65 @@ import java.io.InputStream;
 import java.util.Scanner;
 
 /**
-* Mediator Implementation
-*/
+ * Mediator Implementation
+ */
 public class XMLtoJSONTestMediator extends AbstractMediator {
 
-  private static final Logger log = LoggerFactory.getLogger(XMLtoJSONTestMediator.class);
-  private String logMessage = "Message received at Sample Mediator";   // Sample Mediator specific variable
+    private static final Logger log = LoggerFactory.getLogger(XMLtoJSONTestMediator.class);
+    private String logMessage = "Message received at Sample Mediator";   // Sample Mediator specific variable
 
 
-  @Override
-  public String getName() {
-    return "XMLtoJSONTestMediator";
-  }
+    @Override
+    public String getName() {
+        return "XMLtoJSONTestMediator";
+    }
 
-  /**
-  * Mediate the message.
-  *
-  * This is the execution point of the mediator.
-  * @param carbonMessage MessageContext to be mediated
-  * @param carbonCallback Callback which can be use to call the previous step
-  * @return whether mediation is success or not
-  **/
-  @Override
-  public boolean receive(CarbonMessage carbonMessage, CarbonCallback carbonCallback) throws Exception {
-      String sourceType = carbonMessage.getHeader("Content-Type");
+    /**
+     * Mediate the message.
+     * <p/>
+     * This is the execution point of the mediator.
+     *
+     * @param carbonMessage  MessageContext to be mediated
+     * @param carbonCallback Callback which can be use to call the previous step
+     * @return whether mediation is success or not
+     **/
+    @Override
+    public boolean receive(CarbonMessage carbonMessage, CarbonCallback carbonCallback) throws Exception {
 
-      if (sourceType == null) {
-          log.error("Content-Type header could not be found in the request");
+        InputStream stream = convertTo(carbonMessage, MIMEType.JSON);
+        Scanner sc = new Scanner(stream, "UTF-8");
 
-          throw new Exception("header not found: Content-Type");
-      }
+        StringBuffer json = new StringBuffer();
+        while (sc.hasNextLine()) {
+            json.append(sc.nextLine() + "\n");
+        }
 
-      InputStream stream = ConversionManager.getInstance().convertTo(carbonMessage, sourceType, MIMEType.JSON);
-      Scanner sc = new Scanner(stream, "UTF-8");
+        log.info("\n" + json.toString());
 
-      StringBuffer json = new StringBuffer();
-      while (sc.hasNextLine()) {
-          json.append(sc.nextLine() + "\n");
-      }
+        DefaultCarbonMessage newMsg = new DefaultCarbonMessage();
+        carbonMessage.setHeader("Content-Type", MIMEType.JSON);
+        newMsg.setStringMessageBody(json.toString());
 
-      log.info("\n" + json.toString());
+        return next(newMsg, carbonCallback);
+    }
 
-      DefaultCarbonMessage newMsg = new DefaultCarbonMessage();
-      newMsg.setHeader("Content-Type", MIMEType.JSON);
-      newMsg.setStringMessageBody(json.toString());
-
-      return next(newMsg, carbonCallback);
-  }
-
- /**
-  * Set Parameters
-  *
-  * @param parameterHolder holder which contains key-value pairs of parameters
-  */
-  @Override
-  public void setParameters(ParameterHolder parameterHolder) {
-    logMessage = parameterHolder.getParameter("parameters").getValue();
-  }
+    /**
+     * Set Parameters
+     *
+     * @param parameterHolder holder which contains key-value pairs of parameters
+     */
+    @Override
+    public void setParameters(ParameterHolder parameterHolder) {
+        logMessage = parameterHolder.getParameter("parameters").getValue();
+    }
 
 
-  /** This is a sample mediator specific method */
-  public void setLogMessage(String logMessage) {
-     this.logMessage = logMessage;
-  }
+    /**
+     * This is a sample mediator specific method
+     */
+    public void setLogMessage(String logMessage) {
+        this.logMessage = logMessage;
+    }
 
 
 }
